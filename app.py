@@ -2,102 +2,153 @@ import streamlit as st
 import pandas as pd
 import pickle
 from pathlib import Path
-
-
+from st_aggrid import GridOptionsBuilder, AgGrid
 st.set_page_config(
     page_title="Player Recommendation System",
     page_icon=":soccer:"
 )
+st.markdown("<h1 style='text-align: center; color: #ff4d4d;'>Player Recommendation System</h1>", unsafe_allow_html=True)
+
+
+def table(data):
+    gb = GridOptionsBuilder.from_dataframe(data)
+    gb.configure_pagination(paginationAutoPageSize=True)  # Add pagination
+    gb.configure_side_bar()  # Add a sidebar
+    gridOptions = gb.build()
+
+    grid_response = AgGrid(
+        data,
+        gridOptions=gridOptions,
+        data_return_mode='AS_INPUT',
+        update_mode='MODEL_CHANGED',
+        fit_columns_on_grid_load=False,
+        theme='dark',  # Add theme color to the table
+        enable_enterprise_modules=False,
+        height=350,
+        reload_data=False
+    )
 
 @st.cache(show_spinner=False)
 def getData():
-    # loading outfield players' cleaned data and engine
-    player_df = pd.read_pickle('Resources/outfield.pickle')
-    with open('Resources/Player_ID.pickle', 'rb') as file:
-        player_ID = pickle.load(file)
-    with open('Resources/engine.pickle', 'rb') as file:
-        engine = pickle.load(file)
+    midfielders_df = pickle.load(open('Midfielders.pkl', 'rb'))
+    with open('Resources/midfielder_ID.pickle', 'rb') as file:
+        midfielder_ID = pickle.load(file)
+    with open('Resources/enginemid.pickle', 'rb') as file:
+        enginemid = pickle.load(file)
 
-    gk_df = pd.read_pickle('Resources/Goalkeeper.pickle')
+    defenders_df = pickle.load(open('Defenders.pkl', 'rb'))
+    with open('Resources/defender_ID.pickle', 'rb') as file:
+        defender_ID = pickle.load(file)
+    with open('Resources/enginedef.pickle', 'rb') as file:
+        enginedef = pickle.load(file)
+
+    forwards_df = pickle.load(open('Forwards.pkl', 'rb'))
+    with open('Resources/forward_ID.pickle', 'rb') as file:
+        forward_ID = pickle.load(file)
+    with open('Resources/engineforw.pickle', 'rb') as file:
+        engineforw = pickle.load(file)
+
+    gk_df = pickle.load(open('GK.pickle', 'rb'))
     with open('Resources/Goalkeeper_ID.pickle', 'rb') as file:
         gk_ID = pickle.load(file)
     with open('Resources/engine_gk.pickle', 'rb') as file:
         gk_engine = pickle.load(file)
 
-    return [player_df, player_ID, engine], [gk_df, gk_ID, gk_engine]
+    return [midfielders_df, midfielder_ID, enginemid], [defenders_df, defender_ID, enginedef], [forwards_df, forward_ID,
+                                                                                                engineforw], [gk_df,
+                                                                                                              gk_ID,
+                                                                                                              gk_engine]
 
-outfield_data, gk_data = getData()
 
+midfielder_data, defender_data, forward_data, gk_data = getData()
 
-header = st.container()
-data_info1 = st.container()
 params = st.container()
 result = st.container()
 
-with header:
-    st.title('Player Recommendation System')
 
-with data_info1:
-    st.markdown('Based on the 2021/2022 season data for the Top5 European leagues')
-    @st.cache
-    def read_info(path):
-        return Path(path).read_text(encoding='utf8')
 
 with params:
     st.text(' \n')
     st.text(' \n')
-    st.header('Play with the parameters')
+    st.text('Data is based on 21/22 Season for the Big 5 European Leagues')
+    st.text(' \n')
+    st.text(' \n')
 
-    col1, col2, col3 = st.columns([1, 2.2, 0.8])
+    col1, col2, col3 = st.columns([1.2,1,2.8])
     with col1:
-        radio = st.radio('Choose Player Type', ['Outfield players', 'GoalKeepers'])
+        radio = st.radio('Choose a Position', ['Defenders', 'Midfielders', 'Forwards', 'GoalKeepers'])
 
     with col2:
-        if radio == 'Outfield players':
-            df, player_ID, engine = outfield_data
-        else:
-            df, player_ID, engine = gk_data
-        players = sorted(list(player_ID.keys()))
-        age_default = (min(df['Age']), max(df['Age']))
-        query = st.selectbox('Player name', players,help='Type without deleting a character. To search from a specific team, just type in the club\'s name.')
+        foot = st.selectbox('Preferred foot', ['All', 'Automatic', 'Right', 'Left'])
+
 
     with col3:
-        foot = st.selectbox('Preferred foot', ['All', 'Automatic', 'Right', 'Left'],
-                            help='\'Automatic\' matches the preferred foot of the selected player with the players automatically. \
-                            \'All\' by default. Preferred foot data is not available for GK\'s.')
+        if radio == 'Midfielders':
+            df, player_ID, engine = midfielder_data
 
+        elif radio == 'Defenders':
+            df, player_ID, engine = defender_data
 
-    col4, col5, col6, col7 = st.columns([0.7, 1, 1, 1])
-    with col4:
-        if radio=='Outfield players':
-            res, val, step = (5, 20), 10, 5
+        elif radio == 'Forwards':
+            df, player_ID, engine = forward_data
+
         else:
-            res, val, step = (3, 10), 5, 1
-        count = st.slider('Number of results', min_value=res[0], max_value=res[1], value=val, step=step)
+            df, player_ID, engine = gk_data
+
+        players = sorted(list(player_ID.keys()))
+        age_default = (min(df['Age']), max(df['Age']))
+        query = st.selectbox('Player', players)
+
+    st.text(' \n')
+    st.text(' \n')
+
+
+    col4, col5, col6, col7 = st.columns([1, 1, 1, 1])
+
+    with col4:
+        comp = st.selectbox('League', ['All', 'Premier League', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1'],)
+
+
     with col5:
-        comp = st.selectbox('League', ['All', 'Premier League', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1'],
-            help='Leagues to get recommendations from. \'All\' leagues by default.')
+        if radio == 'Midfielders':
+            res, val, step = (10, 20), 10, 5
+
+        elif radio == 'Defenders':
+            res, val, step = (10, 20), 10, 5
+
+        elif radio == 'Forwards':
+            res, val, step = (10, 20), 10, 5
+
+
+        else:
+            res, val, step = (10, 20), 10, 5
+        count = st.slider('Number of Players', min_value=res[0], max_value=res[1], value=val, step=step)
+
+
     with col6:
-        comparison = st.selectbox('Comparison with', ['All positions', 'Same position'],
-            help='Whether to compare the selected player with all positions or just the same defined position in the dataset. \'All \
-            positions\' by default.')
+        age = st.slider('Age Bracket', min_value=age_default[0], max_value=age_default[1], value=age_default)
+
     with col7:
-        age = st.slider('Age bracket', min_value=age_default[0], max_value=age_default[1], value=age_default,
-        help='Age range to get recommendations from. Drag the sliders on either side. \'All\' ages by default.')
+        comparison = st.selectbox('Compare with', ['All positions', 'Same position'])
 
     with result:
         st.text(' \n')
         st.text(' \n')
-        st.text(' \n')
-        st.markdown('_These are the players most similar to_ **{}**'.format(query))
 
 
-        def getRecommendations(metric, df_type, league='All', foot='All', comparison='All positions', age=age_default,
-                               count=val):
-            if df_type == 'outfield':
-                df_res = df.iloc[:, [1, 3, 5, 6, 10, -1]].copy()
+
+        def getRecommendations(metric, df_type, league='All', foot='All', comparison='All positions', age=age_default,count=val):
+
+            if df_type == 'Midfield':
+                df_res = df.iloc[:, [0,1,4,5,-1]].copy()
+
+            elif df_type == 'Defense':
+                df_res = df.iloc[:, [0,1,4,5,-1]].copy()
+
+            elif df_type == 'Forward':
+                df_res = df.iloc[:, [0,1,4,5,-1]].copy()
             else:
-                df_res = df.iloc[:, [1, 3, 5, 6, 10]].copy()
+                df_res = df.iloc[:, [0,1,3,4,5]].copy()
             df_res['Player'] = list(player_ID.keys())
             df_res.insert(1, 'Similarity', metric)
             df_res = df_res.sort_values(by=['Similarity'], ascending=False)
@@ -105,7 +156,15 @@ with params:
             df_res['Similarity'] = metric
             df_res = df_res.iloc[1:, :]
 
-            if comparison == 'Same position' and df_type == 'outfield':
+            if comparison == 'Same position' and df_type == 'Midfield':
+                q_pos = list(df[df['Player'] == query.split(' (')[0]].Pos)[0]
+                df_res = df_res[df_res['Pos'] == q_pos]
+
+            elif comparison == 'Same position' and df_type == 'Defense':
+                q_pos = list(df[df['Player'] == query.split(' (')[0]].Pos)[0]
+                df_res = df_res[df_res['Pos'] == q_pos]
+
+            elif comparison == 'Same position' and df_type == 'Forward':
                 q_pos = list(df[df['Player'] == query.split(' (')[0]].Pos)[0]
                 df_res = df_res[df_res['Pos'] == q_pos]
 
@@ -131,19 +190,25 @@ with params:
 
             df_res = df_res.iloc[:count, :].reset_index(drop=True)
             df_res.index = df_res.index + 1
-            if len(df) == 2077:
-                mpmin = [str(num) for num in df_res['Min']]
-                df_res['Min'] = mpmin
-            df_res.rename(columns={'Pos': 'Position', 'Comp': 'League','Min':'Mins played'}, inplace=True)
+            df_res.rename(columns={'Pos': 'Position', 'Comp': 'League'}, inplace=True)
             return df_res
 
 
         sims = engine[query]
-        df_type = 'outfield' if len(df) == 2077 else 'gk'
-        recoms = getRecommendations(sims, df_type=df_type, foot=foot, league=comp, comparison=comparison, age=age,
-                                    count=count)
-        st.table(recoms)
+        if len(df) == 609:
+            df_type = 'Midfield'
+        elif len(df) == 772:
+            df_type= 'Defense'
+        elif len(df) == 460:
+            df_type= 'Forward'
+        else:
+            df_type= 'gk'
 
+        if st.button('Recommend'):
+            st.text(' \n')
+            st.text(' \n')
+            st.text(' \n')
+            st.markdown('Recommending players similar to **{}**'.format(query))
 
-
-
+            recoms = getRecommendations(sims, df_type=df_type, foot=foot, league=comp, comparison=comparison, age=age,count=count)
+            table(recoms)
