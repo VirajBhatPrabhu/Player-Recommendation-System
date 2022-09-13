@@ -142,7 +142,6 @@ rich==12.5.1
 rsa==4.8
 scikit-learn==1.0.2
 scipy==1.7.3
-seaborn==0.11.2
 selenium==4.3.0
 semver==2.13.0
 Send2Trash==1.8.0
@@ -157,16 +156,8 @@ streamlit==1.11.0
 streamlit-aggrid==0.3.2
 streamlit-option-menu==0.3.2
 sweetviz==2.1.4
-tensor-dash==1.8.1
-tensorboard==2.8.0
-tensorboard-data-server==0.6.1
-tensorboard-plugin-wit==1.8.1
-tensorflow==2.3.1
-tensorflow-estimator==2.3.0
-tensorflow-io-gcs-filesystem==0.25.0
 termcolor==1.1.0
 terminado==0.15.0
-tf-estimator-nightly==2.8.0.dev2021122109
 threadpoolctl==3.1.0
 tinycss2==1.1.1
 toml==0.10.2
